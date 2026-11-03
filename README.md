@@ -18,7 +18,14 @@ cd homeBuddy
 scripts/repos.sh clone
 ```
 
-On Windows PowerShell use `./scripts/repos.ps1 clone`. Both scripts support:
+There are two equivalent scripts with the same commands and behavior; use whichever fits your shell:
+
+| Script | Run it from | Example |
+|---|---|---|
+| [`scripts/repos.sh`](scripts/repos.sh) | bash: Linux, macOS, Git Bash, CI | `scripts/repos.sh status` |
+| [`scripts/repos.ps1`](scripts/repos.ps1) | Windows PowerShell 5.1 or PowerShell 7 | `./scripts/repos.ps1 status` |
+
+From PowerShell you can also run the bash version with `bash scripts/repos.sh status`. Commands:
 
 | Command | Effect |
 |---|---|

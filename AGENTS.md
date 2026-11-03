@@ -11,6 +11,7 @@ All commit messages, pull request texts, code comments, specifications, document
 - The root repository tracks only workspace files: `README.md`, `AGENTS.md`, `repos.txt`, `scripts/`, `docs/`, `openspec/`, and shared infrastructure such as the root `docker-compose.yml`.
 - Service folders are independent Git repositories listed in `repos.txt` and ignored by the root `.gitignore`. Commit service changes in the service repository, never in the root.
 - Adding, renaming, or removing a service means updating `repos.txt`, `.gitignore`, `README.md`, and `docs/ARCHITECTURE.md` together.
+- `scripts/repos.sh` and `scripts/repos.ps1` are equivalent implementations. Change both in the same commit so their commands, output, and exit codes stay identical, and test both (bash, and PowerShell 5.1 and 7).
 
 ## Where to write specifications
 
