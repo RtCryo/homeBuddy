@@ -4,7 +4,7 @@
 
 - [x] 1.1 Add `.gitignore` for service folders, `repos.txt`, and `scripts/repos.sh` / `scripts/repos.ps1` with `clone`, `pull`, and `status`; verify both scripts on present, missing, and unreachable repositories.
 - [x] 1.2 Add root `README.md`, `AGENTS.md` (specification placement rule), and `docs/ARCHITECTURE.md` (system map, ownership, contracts); verify links resolve in a fully cloned workspace.
-- [ ] 1.3 Create remotes for the root, authBuddy, and calendarBuddy repositories and confirm the URLs in `repos.txt`; verify `scripts/repos.sh clone` into an empty workspace.
+- [x] 1.3 Create remotes for the root, authBuddy, and calendarBuddy repositories and confirm the URLs in `repos.txt`; verify `scripts/repos.sh clone` into an empty workspace.
 - [ ] 1.4 Add the root `docker-compose.yml` creating the `homebuddy` network and the shared Traefik under the `production` profile; verify `docker compose config` and that a service UI with labels is routed.
 
 ## 2. Coordinated rollout

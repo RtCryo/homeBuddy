@@ -28,6 +28,8 @@ On Windows PowerShell use `./scripts/repos.ps1 clone`. Both scripts support:
 
 The scripts never commit, push, or reset. Commit and push inside each service folder as usual.
 
+On Windows, keep the workspace in a short path (for example `D:/repo/homeBuddy`) or enable `git config --global core.longpaths true`; some service files have deep paths that exceed the 260-character limit under long parent folders.
+
 ## Where things are specified
 
 - **Root [`openspec/`](openspec/)**: contracts between services (identity token, network and routing, shared UI rules) and umbrella changes that coordinate several services.
