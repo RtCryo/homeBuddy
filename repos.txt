@@ -1,0 +1,8 @@
+# homeBuddy service repositories, managed by scripts/repos.sh and scripts/repos.ps1.
+# Each service is an independent Git repository cloned into the folder named here;
+# the root repository ignores these folders (see .gitignore).
+#
+# name           url                                          branch
+authBuddy        https://github.com/RtCryo/authBuddy.git       main
+finanzBuddy      https://github.com/RtCryo/finanzBuddy.git     main
+calendarBuddy    https://github.com/RtCryo/calendarBuddy.git   main

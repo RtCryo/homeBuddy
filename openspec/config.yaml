@@ -1,0 +1,16 @@
+schema: spec-driven
+
+context: |
+  This is the homeBuddy root workspace. It contains only cross-service specifications:
+  contracts between services (identity tokens, networking, deployment, shared UI family)
+  and umbrella changes that coordinate per-service changes and their rollout order.
+  Service behavior is specified in each service repository's own openspec/ folder
+  (authBuddy, finanzBuddy, calendarBuddy), which are independent Git repositories
+  listed in repos.txt and ignored by this repository.
+
+rules:
+  proposal:
+    - List every affected service repository and link its per-service change.
+    - State the rollout order between services when more than one is affected.
+  tasks:
+    - Group tasks by repository; a root task only coordinates or verifies, it never implements service code.

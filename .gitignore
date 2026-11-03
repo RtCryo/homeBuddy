@@ -1,0 +1,13 @@
+# Service repositories are independent Git repositories listed in repos.txt.
+/authBuddy/
+/finanzBuddy/
+/calendarBuddy/
+
+# Local environment and editor files
+.env
+.idea/
+.vscode/
+*.log
+.opencode/
+.claude/
+.agents/
