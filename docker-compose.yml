@@ -1,0 +1,47 @@
+# Shared homeBuddy infrastructure (see openspec homebuddy-deployment).
+#
+# - Creates the `homebuddy` network that every service stack joins as an
+#   external network.
+# - Runs the only Traefik that binds ports 80 and 443 on a host running
+#   several homeBuddy services. It starts under the `production` profile only:
+#     docker compose --profile production up -d
+#   Without the profile, `docker compose up -d` creates just the network.
+#
+# Do not run a service-local Traefik on a host that runs this one.
+name: homebuddy
+
+services:
+  traefik:
+    image: traefik:v3.7.17
+    container_name: homebuddy-traefik
+    profiles:
+      - production
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=homebuddy"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${TRAEFIK_ACME_EMAIL:-}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-acme:/letsencrypt
+    networks:
+      - homebuddy
+
+networks:
+  homebuddy:
+    name: homebuddy
+    driver: bridge
+
+volumes:
+  traefik-acme:
