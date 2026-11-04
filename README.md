@@ -52,4 +52,8 @@ Each service has its own `docker-compose.yml` and `.env.example`; start authBudd
 docker network create homebuddy
 ```
 
-The planned root `docker-compose.yml` will create this network and run the shared Traefik for production (see [`establish-homebuddy-platform`](openspec/changes/establish-homebuddy-platform/tasks.md)).
+On a production host, the root `docker-compose.yml` creates this network and runs the shared Traefik, the only container that binds ports 80 and 443:
+
+```bash
+docker compose --profile production up -d
+```

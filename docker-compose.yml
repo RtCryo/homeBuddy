@@ -5,7 +5,9 @@
 # - Runs the only Traefik that binds ports 80 and 443 on a host running
 #   several homeBuddy services. It starts under the `production` profile only:
 #     docker compose --profile production up -d
-#   Without the profile, `docker compose up -d` creates just the network.
+#   Without the profile no service is selected and Compose creates nothing;
+#   on a development host create the network directly instead:
+#     docker network create homebuddy
 #
 # Do not run a service-local Traefik on a host that runs this one.
 name: homebuddy
