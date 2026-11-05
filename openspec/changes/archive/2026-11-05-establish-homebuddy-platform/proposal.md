@@ -30,9 +30,9 @@ homeBuddy grows from one product (finanzBuddy) to three independent repositories
 
 | Order | Repository | Change | Delivers |
 |---|---|---|---|
-| 1 | authBuddy | [`add-identity-service`](../../../authBuddy/openspec/changes/add-identity-service/proposal.md) | Accounts, token issuance, JWKS, legacy import |
-| 2 | finanzBuddy | [`adopt-homebuddy-identity`](../../../finanzBuddy/openspec/changes/adopt-homebuddy-identity/proposal.md) | Gateway accepts homeBuddy tokens; local users linked |
-| 3 | calendarBuddy | [`add-calendar-buddy`](../../../calendarBuddy/openspec/changes/add-calendar-buddy/proposal.md) | Family calendar on the shared account |
+| 1 | authBuddy | [`add-identity-service`](../../../../authBuddy/openspec/changes/archive/2026-11-04-add-identity-service/proposal.md) | Accounts, token issuance, JWKS, legacy import |
+| 2 | finanzBuddy | [`adopt-homebuddy-identity`](../../../../finanzBuddy/openspec/changes/archive/2026-11-05-adopt-homebuddy-identity/proposal.md) | Gateway accepts homeBuddy tokens; local users linked |
+| 3 | calendarBuddy | [`add-calendar-buddy`](../../../../calendarBuddy/openspec/changes/archive/2026-11-05-add-calendar-buddy/proposal.md) | Family calendar on the shared account |
 
 ## Non-goals
 

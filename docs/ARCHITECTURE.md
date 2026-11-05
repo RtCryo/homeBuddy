@@ -1,8 +1,8 @@
 # homeBuddy architecture
 
-This is the system map across homeBuddy services. Service internals are documented in each repository's own `docs/ARCHITECTURE.md`. Normative rules live in the root [`openspec/`](../openspec/); while the platform change is active, see [`establish-homebuddy-platform`](../openspec/changes/establish-homebuddy-platform/design.md).
+This is the system map across homeBuddy services. Service internals are documented in each repository's own `docs/ARCHITECTURE.md`. Normative rules live in the root capabilities under [`openspec/specs/`](../openspec/specs/); the design rationale is recorded in the archived [`establish-homebuddy-platform`](../openspec/changes/archive/2026-11-05-establish-homebuddy-platform/design.md) change.
 
-Status: authBuddy and calendarBuddy are specified but not implemented yet; finanzBuddy currently still issues its own tokens until [`adopt-homebuddy-identity`](../finanzBuddy/openspec/changes/adopt-homebuddy-identity/proposal.md) is applied.
+Status: the platform rollout is complete and verified end to end. authBuddy issues the shared account tokens ([`add-identity-service`](../authBuddy/openspec/changes/archive/2026-11-04-add-identity-service/proposal.md)), finanzBuddy accepts them ([`adopt-homebuddy-identity`](../finanzBuddy/openspec/changes/archive/2026-11-05-adopt-homebuddy-identity/proposal.md)), and calendarBuddy is built on them ([`add-calendar-buddy`](../calendarBuddy/openspec/changes/archive/2026-11-05-add-calendar-buddy/proposal.md)).
 
 ## Services and ownership
 
