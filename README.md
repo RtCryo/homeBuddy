@@ -52,8 +52,9 @@ Each service has its own `docker-compose.yml` and `.env.example`; start authBudd
 docker network create homebuddy
 ```
 
-On a production host, the root `docker-compose.yml` creates this network and runs the shared Traefik, the only container that binds ports 80 and 443:
+On a production host, the root `docker-compose.yml` creates this network and runs the shared Traefik, the only container that binds ports 80 and 443. Copy [`.env.example`](.env.example) to `.env` first, then start it:
 
 ```bash
+cp .env.example .env
 docker compose --profile production up -d
 ```
