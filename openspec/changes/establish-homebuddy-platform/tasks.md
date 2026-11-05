@@ -9,9 +9,9 @@
 
 ## 2. Coordinated rollout
 
-- [x] 2.1 authBuddy: implement [`add-identity-service`](../../../authBuddy/openspec/changes/add-identity-service/tasks.md) conforming to `homebuddy-identity-contract` and `homebuddy-deployment`.
-- [ ] 2.2 finanzBuddy: implement [`adopt-homebuddy-identity`](../../../finanzBuddy/openspec/changes/adopt-homebuddy-identity/tasks.md), including Traefik labels on the shared network.
-- [ ] 2.3 calendarBuddy: implement [`add-calendar-buddy`](../../../calendarBuddy/openspec/changes/add-calendar-buddy/tasks.md) conforming to all root capabilities.
+- [x] 2.1 authBuddy: implement [`add-identity-service`](../../../authBuddy/openspec/changes/archive/2026-11-04-add-identity-service/tasks.md) conforming to `homebuddy-identity-contract` and `homebuddy-deployment`.
+- [x] 2.2 finanzBuddy: implement [`adopt-homebuddy-identity`](../../../finanzBuddy/openspec/changes/adopt-homebuddy-identity/tasks.md), including Traefik labels on the shared network.
+- [x] 2.3 calendarBuddy: implement [`add-calendar-buddy`](../../../calendarBuddy/openspec/changes/archive/2026-11-05-add-calendar-buddy/tasks.md) conforming to all root capabilities.
 - [ ] 2.4 Verify end to end on one host: one account signs in to finanzBuddy and calendarBuddy, an existing finanzBuddy user keeps data and password, and only the shared Traefik owns ports 80/443.
 
 ## 3. Archive
