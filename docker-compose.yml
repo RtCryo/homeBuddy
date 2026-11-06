@@ -8,6 +8,11 @@
 #   Without the profile no service is selected and Compose creates nothing;
 #   on a development host create the network directly instead:
 #     docker network create homebuddy
+#   Compose refuses to adopt a `homebuddy` network created that way ("network
+#   homebuddy was found but has incorrect label"). To move such a host to the
+#   production profile, run `docker compose down` in every service stack,
+#   then `docker network rm homebuddy`, start this stack, and start the
+#   service stacks again. Volumes and data are kept.
 # - Does NOT create the identity networks. Each product API reaches authBuddy
 #   over its own internal-only network `<service>-identity`, whose only members
 #   are that API and authBuddy. Compose creates only networks that a service in

@@ -65,3 +65,5 @@ On a production host, the root `docker-compose.yml` creates the `homebuddy` netw
 cp .env.example .env
 docker compose --profile production up -d
 ```
+
+Start the root stack before the service stacks on a new production host. If the host already has a `homebuddy` network created with `docker network create`, for example a former development host, Compose refuses to adopt it and fails with `network homebuddy was found but has incorrect label`. Run `docker compose down` in every service stack, then `docker network rm homebuddy`, start the root stack, and start the service stacks again. Volumes and data are kept.
