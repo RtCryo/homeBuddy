@@ -1,0 +1,43 @@
+apiVersion: 1
+
+providers:
+  - name: homeBuddy
+    orgId: 1
+    folder: homeBuddy
+    folderUid: homebuddy
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards/homebuddy
+  - name: authBuddy
+    orgId: 1
+    folder: authBuddy
+    folderUid: authbuddy
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards/authbuddy
+  - name: finanzBuddy
+    orgId: 1
+    folder: finanzBuddy
+    folderUid: finanzbuddy
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards/finanzbuddy
+  - name: calendarBuddy
+    orgId: 1
+    folder: calendarBuddy
+    folderUid: calendarbuddy
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards/calendarbuddy
