@@ -1,12 +1,13 @@
 # Local-development overrides, loaded automatically by `docker compose`.
-# Publishes the central Grafana and Prometheus on localhost. Production runs
+# Publishes the central Grafana and Prometheus on the loopback interface only, so a
+# production host that loads this file by mistake still does not expose them. Production runs
 # with `-f docker-compose.yml` so that this file is not loaded and only Traefik
 # binds host ports (see openspec homebuddy-monitoring).
 services:
   prometheus:
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
 
   grafana:
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"

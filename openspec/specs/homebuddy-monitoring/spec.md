@@ -13,7 +13,7 @@ The root `docker-compose.yml` SHALL run the only Prometheus and the only Grafana
 - **THEN** the central Prometheus and Grafana start, and no service stack starts another Prometheus or Grafana
 
 #### Scenario: Start the production stack
-- **WHEN** an operator runs `docker compose --profile production up -d` in the root workspace
+- **WHEN** an operator runs `docker compose -f docker-compose.yml --profile production up -d` in the root workspace
 - **THEN** the shared Traefik, the central Prometheus, and the central Grafana are running
 
 ### Requirement: Prometheus reaches each service over its own metrics network

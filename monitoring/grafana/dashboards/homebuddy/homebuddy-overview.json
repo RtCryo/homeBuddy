@@ -374,7 +374,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "process_uptime_seconds",
+          "expr": "process_uptime_seconds or (time() - process_start_time_seconds)",
           "legendFormat": "{{service}} / {{job}}",
           "refId": "A"
         }
