@@ -59,9 +59,25 @@ docker network create --internal finanzbuddy-identity
 docker network create --internal calendarbuddy-identity
 ```
 
-On a production host, the root `docker-compose.yml` creates the `homebuddy` network and runs the shared Traefik, the only container that binds ports 80 and 443. Copy [`.env.example`](.env.example) to `.env` first, then start it:
+Monitoring uses one more internal-only network per service, shared only by that service's metrics endpoints and the central Prometheus. Create these once on every host, too:
+
+```bash
+docker network create --internal authbuddy-metrics
+docker network create --internal finanzbuddy-metrics
+docker network create --internal calendarbuddy-metrics
+```
+
+The root `docker-compose.yml` runs the central monitoring stack: one Prometheus and one Grafana for all services. Copy [`.env.example`](.env.example) to `.env`, set `GRAFANA_ADMIN_PASSWORD`, and start it:
 
 ```bash
 cp .env.example .env
-docker compose --profile production up -d
+docker compose up -d
+```
+
+Grafana is then at <http://localhost:3001> and Prometheus at <http://localhost:9090>. Sign in to Grafana as `admin` with `GRAFANA_ADMIN_PASSWORD`; the homeBuddy overview opens first and each service has its own folder. Services whose stacks are not running show as down. Ports 3001 and 9090 must be free: stop finanzBuddy's own Prometheus and Grafana first if your finanzBuddy checkout still starts them.
+
+On a production host, the same file also runs the shared Traefik, the only container that binds ports 80 and 443, and publishes Grafana on `MONITORING_DOMAIN` over HTTPS (create a DNS record for it first). Set `GRAFANA_ADMIN_PASSWORD`, `MONITORING_DOMAIN`, `GRAFANA_COOKIE_SECURE=true`, and `TRAEFIK_ACME_EMAIL` in `.env`. Start it without the local override, which would publish Grafana and Prometheus on host ports:
+
+```bash
+docker compose -f docker-compose.yml --profile production up -d
 ```

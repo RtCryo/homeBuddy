@@ -1,12 +1,18 @@
-# Shared homeBuddy infrastructure (see openspec homebuddy-deployment).
+# Shared homeBuddy infrastructure (see openspec homebuddy-deployment and
+# homebuddy-monitoring).
 #
 # - Creates the `homebuddy` network that every service stack joins as an
 #   external network.
+# - Runs the central monitoring stack: the only Prometheus and the only Grafana
+#   of a host. It has no profile, so it starts locally and in production:
+#     docker compose up -d
 # - Runs the only Traefik that binds ports 80 and 443 on a host running
 #   several homeBuddy services. It starts under the `production` profile only:
-#     docker compose --profile production up -d
-#   Without the profile no service is selected and Compose creates nothing;
-#   on a development host create the network directly instead:
+#     docker compose -f docker-compose.yml --profile production up -d
+#   Production uses `-f docker-compose.yml` so that the local override
+#   (docker-compose.override.yml, which publishes Grafana and Prometheus ports)
+#   is not loaded. On a development host create the network directly if you
+#   do not start this file:
 #     docker network create homebuddy
 # - Does NOT create the identity networks. Each product API reaches authBuddy
 #   over its own internal-only network `<service>-identity`, whose only members
@@ -15,6 +21,14 @@
 #   once on every host, production included:
 #     docker network create --internal finanzbuddy-identity
 #     docker network create --internal calendarbuddy-identity
+# - Does NOT create the metrics networks either. Each service has an
+#   internal-only network `<service>-metrics`, shared only by the central
+#   Prometheus and that service's scrape targets. They are external so that a
+#   service stack can start before this file; create them once on every host,
+#   production included:
+#     docker network create --internal authbuddy-metrics
+#     docker network create --internal finanzbuddy-metrics
+#     docker network create --internal calendarbuddy-metrics
 #
 # Do not run a service-local Traefik on a host that runs this one.
 name: homebuddy
@@ -47,10 +61,70 @@ services:
     networks:
       - homebuddy
 
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    container_name: homebuddy-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    networks:
+      - default
+      - authbuddy-metrics
+      - finanzbuddy-metrics
+      - calendarbuddy-metrics
+
+  grafana:
+    image: grafana/grafana:13.3.0
+    container_name: homebuddy-grafana
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_started
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # Grafana serves /metrics without a sign-in by default; nothing scrapes it, and the portal
+      # must show nothing before sign-in.
+      GF_METRICS_ENABLED: "false"
+      GF_SERVER_ROOT_URL: ${MONITORING_DOMAIN:+https://}${MONITORING_DOMAIN:-http://localhost:3001}
+      GF_SECURITY_COOKIE_SECURE: ${GRAFANA_COOKIE_SECURE:-false}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/homebuddy/homebuddy-overview.json
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=homebuddy"
+      - "traefik.http.routers.homebuddy-grafana.rule=Host(`${MONITORING_DOMAIN:-monitoring.invalid}`)"
+      - "traefik.http.routers.homebuddy-grafana.entrypoints=websecure"
+      - "traefik.http.routers.homebuddy-grafana.tls.certresolver=letsencrypt"
+      - "traefik.http.services.homebuddy-grafana.loadbalancer.server.port=3000"
+    networks:
+      - default
+      - homebuddy
+
 networks:
   homebuddy:
     name: homebuddy
     driver: bridge
+  authbuddy-metrics:
+    name: authbuddy-metrics
+    external: true
+  finanzbuddy-metrics:
+    name: finanzbuddy-metrics
+    external: true
+  calendarbuddy-metrics:
+    name: calendarbuddy-metrics
+    external: true
 
 volumes:
   traefik-acme:
+  prometheus-data:
+  grafana-data:

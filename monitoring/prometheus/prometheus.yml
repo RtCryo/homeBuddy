@@ -1,0 +1,47 @@
+# Central homeBuddy Prometheus (see openspec homebuddy-monitoring).
+# Jobs are named <service>-<component>, address their target by container name,
+# and carry a lowercase `service` label.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: homebuddy-prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          service: homebuddy
+
+  - job_name: authbuddy-auth-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["authbuddy-auth-service:8080"]
+        labels:
+          service: authbuddy
+
+  - job_name: finanzbuddy-api-gateway
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["finanzbuddy-api-gateway:8080"]
+        labels:
+          service: finanzbuddy
+
+  - job_name: finanzbuddy-parser-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["finanzbuddy-parser-service:8080"]
+        labels:
+          service: finanzbuddy
+
+  - job_name: finanzbuddy-kafka-exporter
+    static_configs:
+      - targets: ["finanzbuddy-kafka-exporter:9308"]
+        labels:
+          service: finanzbuddy
+
+  - job_name: calendarbuddy-calendar-api
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["calendarbuddy-calendar-api:8080"]
+        labels:
+          service: calendarbuddy

@@ -25,14 +25,38 @@ Browser ──HTTPS──► shared Traefik (root compose, production profile)
 
 api-gateway ──JWKS (cached)──► auth:8080/.well-known/jwks.json   over finanzbuddy-identity
 calendar-api ─JWKS (cached)──► auth:8080/.well-known/jwks.json   over calendarbuddy-identity
+
+Browser ──HTTPS──► shared Traefik ── MONITORING_DOMAIN ──► homebuddy-grafana ──► homebuddy-prometheus
+                                                                                  ├─ authbuddy-auth-service           over authbuddy-metrics
+                                                                                  ├─ finanzbuddy-api-gateway,
+                                                                                  │  -parser-service, -kafka-exporter over finanzbuddy-metrics
+                                                                                  └─ calendarbuddy-calendar-api       over calendarbuddy-metrics
 ```
 
-Traefik, the product UIs, and authBuddy share the external Docker network `homebuddy`. Product APIs do not join it: each reaches authBuddy only over its own external, internal-only identity network, whose members are that API and authBuddy (alias `auth` on every one). No stack can reach another stack's API. Compose cannot create the identity networks, so operators create them once per host:
+Traefik, the product UIs, and authBuddy share the external Docker network `homebuddy`. Product APIs do not join it: each reaches authBuddy only over its own external, internal-only identity network, whose members are that API and authBuddy (alias `auth` on every one). No stack can reach another stack's API, except the central Prometheus over that service's metrics network. Compose cannot create the identity networks, so operators create them once per host:
 
 ```bash
 docker network create --internal finanzbuddy-identity
 docker network create --internal calendarbuddy-identity
 ```
+
+## Monitoring
+
+The root compose runs the only Prometheus (`homebuddy-prometheus`) and the only Grafana (`homebuddy-grafana`) of a host, without a Compose profile. Their configuration and every provisioned dashboard live in the root [`monitoring/`](../monitoring/) folder, with one dashboards subfolder per service. Normative rules: root capability `homebuddy-monitoring`.
+
+- **Metrics networks.** Each service has an external, internal-only network `<service>-metrics` shared only by the central Prometheus and that service's scrape targets. This keeps product APIs unreachable from other stacks. Prometheus joins no other network than its own default one and the three metrics networks. Operators create them once per host:
+
+  ```bash
+  docker network create --internal authbuddy-metrics
+  docker network create --internal finanzbuddy-metrics
+  docker network create --internal calendarbuddy-metrics
+  ```
+
+- **Scrape convention.** Jobs are named `<service>-<component>`, target a container name, and carry a lowercase `service` label: `authbuddy-auth-service`, `finanzbuddy-api-gateway`, `finanzbuddy-parser-service`, `finanzbuddy-kafka-exporter`, `calendarbuddy-calendar-api`, and `homebuddy-prometheus`. Spring services expose `/actuator/prometheus` on port 8080; it is not reachable through any UI proxy or Traefik route.
+- **Grafana portal.** One folder per service (`homeBuddy`, `authBuddy`, `finanzBuddy`, `calendarBuddy`); the home dashboard is the homeBuddy overview with the state of every target. Dashboards and the datasource are provisioned and read-only. Sign-in uses the built-in admin account with `GRAFANA_ADMIN_PASSWORD`; there is no anonymous access or sign-up.
+- **Access.** Locally Grafana is at `http://localhost:3001` and Prometheus at `http://localhost:9090`, published on the loopback interface by the root `docker-compose.override.yml`. In production only Grafana is reachable, through the shared Traefik at `MONITORING_DOMAIN`; Prometheus is unpublished. Production therefore starts with `docker compose -f docker-compose.yml --profile production up -d`.
+- **Retention.** 15 days of samples in the `prometheus-data` volume.
+- **New services.** A new service adds its metrics network, scrape jobs, and dashboards folder here and in `monitoring/` in its umbrella change.
 
 ## Identity contract (summary)
 
@@ -44,7 +68,8 @@ docker network create --internal calendarbuddy-identity
 
 | Service | Ports |
 |---|---|
-| finanzBuddy | UI 3000, Grafana 3001, API 8080, Postgres 5432, S3 9000, Prometheus 9090, Kafka 29092 |
+| homeBuddy monitoring | Grafana 3001, Prometheus 9090 |
+| finanzBuddy | UI 3000, API 8080, Postgres 5432, S3 9000, Kafka 29092 |
 | calendarBuddy | UI 3010, API 8081, Postgres 5433 |
 | authBuddy | API 8090, Postgres 5434 |
 
@@ -52,6 +77,6 @@ New services claim unused ports in their umbrella change and update this table.
 
 ## Naming
 
-- Docker networks: `homebuddy` (external, shared by Traefik, UIs, and authBuddy; aliases `auth`, `finanzbuddy-ui`, `calendarbuddy-ui`) and one external, internal-only `<service>-identity` per product API: `finanzbuddy-identity`, `calendarbuddy-identity`.
-- Container names: `<service>-<component>` (for example `calendarbuddy-postgres`).
-- Domains: finanzBuddy `TRAEFIK_DOMAIN`, calendarBuddy `CALENDAR_DOMAIN`.
+- Docker networks: `homebuddy` (external, shared by Traefik, UIs, authBuddy, and Grafana; aliases `auth`, `finanzbuddy-ui`, `calendarbuddy-ui`), one external, internal-only `<service>-identity` per product API (`finanzbuddy-identity`, `calendarbuddy-identity`), and one external, internal-only `<service>-metrics` per service (`authbuddy-metrics`, `finanzbuddy-metrics`, `calendarbuddy-metrics`).
+- Container names: `<service>-<component>` (for example `calendarbuddy-postgres`); the root stack uses `homebuddy-` (`homebuddy-traefik`, `homebuddy-prometheus`, `homebuddy-grafana`).
+- Domains: finanzBuddy `TRAEFIK_DOMAIN`, calendarBuddy `CALENDAR_DOMAIN`, monitoring portal `MONITORING_DOMAIN`.
