@@ -23,8 +23,15 @@ Browser ──HTTPS──► shared Traefik (root compose, production profile)
                      └─ CALENDAR_DOMAIN ──► calendarbuddy-ui ─┬─ /api/auth/ ──► auth (authBuddy)
                                                                └─ /api/      ──► calendar-api
 
-api-gateway, calendar-api ──JWKS (cached)──► auth:8080/.well-known/jwks.json
-All cross-stack traffic runs on the external Docker network `homebuddy`.
+api-gateway ──JWKS (cached)──► auth:8080/.well-known/jwks.json   over finanzbuddy-identity
+calendar-api ─JWKS (cached)──► auth:8080/.well-known/jwks.json   over calendarbuddy-identity
+```
+
+Traefik, the product UIs, and authBuddy share the external Docker network `homebuddy`. Product APIs do not join it: each reaches authBuddy only over its own external, internal-only identity network, whose members are that API and authBuddy (alias `auth` on every one). No stack can reach another stack's API. Compose cannot create the identity networks, so operators create them once per host:
+
+```bash
+docker network create --internal finanzbuddy-identity
+docker network create --internal calendarbuddy-identity
 ```
 
 ## Identity contract (summary)
@@ -45,6 +52,6 @@ New services claim unused ports in their umbrella change and update this table.
 
 ## Naming
 
-- Docker network: `homebuddy` (external). Aliases: `auth`, `finanzbuddy-ui`, `calendarbuddy-ui`.
+- Docker networks: `homebuddy` (external, shared by Traefik, UIs, and authBuddy; aliases `auth`, `finanzbuddy-ui`, `calendarbuddy-ui`) and one external, internal-only `<service>-identity` per product API: `finanzbuddy-identity`, `calendarbuddy-identity`.
 - Container names: `<service>-<component>` (for example `calendarbuddy-postgres`).
 - Domains: finanzBuddy `TRAEFIK_DOMAIN`, calendarBuddy `CALENDAR_DOMAIN`.

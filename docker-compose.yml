@@ -8,6 +8,13 @@
 #   Without the profile no service is selected and Compose creates nothing;
 #   on a development host create the network directly instead:
 #     docker network create homebuddy
+# - Does NOT create the identity networks. Each product API reaches authBuddy
+#   over its own internal-only network `<service>-identity`, whose only members
+#   are that API and authBuddy. Compose creates only networks that a service in
+#   this file attaches to, and no service here may join them, so create them
+#   once on every host, production included:
+#     docker network create --internal finanzbuddy-identity
+#     docker network create --internal calendarbuddy-identity
 #
 # Do not run a service-local Traefik on a host that runs this one.
 name: homebuddy

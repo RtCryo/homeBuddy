@@ -52,7 +52,14 @@ Each service has its own `docker-compose.yml` and `.env.example`; start authBudd
 docker network create homebuddy
 ```
 
-On a production host, the root `docker-compose.yml` creates this network and runs the shared Traefik, the only container that binds ports 80 and 443. Copy [`.env.example`](.env.example) to `.env` first, then start it:
+Each product API reaches authBuddy over its own internal-only identity network instead of `homebuddy`. Create these once on every host, production included, because Compose cannot create them:
+
+```bash
+docker network create --internal finanzbuddy-identity
+docker network create --internal calendarbuddy-identity
+```
+
+On a production host, the root `docker-compose.yml` creates the `homebuddy` network and runs the shared Traefik, the only container that binds ports 80 and 443. Copy [`.env.example`](.env.example) to `.env` first, then start it:
 
 ```bash
 cp .env.example .env
