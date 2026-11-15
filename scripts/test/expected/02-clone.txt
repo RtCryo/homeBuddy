@@ -1,0 +1,6 @@
++ alpha: cloning <ws>/remotes/alpha.git (main)
++ bravo: cloning <ws>/remotes/bravo.git (main)
+! charlie: <ws>/root/charlie exists but is not a Git repository; skipped
++ delta: cloning <ws>/remotes/missing.git (main)
+! delta: clone failed (does the remote exist and do you have access?)
+exit: 1

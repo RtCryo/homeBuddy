@@ -58,6 +58,34 @@ The root compose runs the only Prometheus (`homebuddy-prometheus`) and the only 
 - **Retention.** 15 days of samples in the `prometheus-data` volume.
 - **New services.** A new service adds its metrics network, scrape jobs, and dashboards folder here and in `monitoring/` in its umbrella change.
 
+## Delivery and releases
+
+Normative rules: root capability `homebuddy-delivery`. Every repository runs one CI workflow (`ci.yml`) on pull requests to `main` and pushes to `main`; its `ci` job is the single required check, together with the pull-request title check. Pull requests are squash-merged and titled with Conventional Commits.
+
+Each service repository is versioned as one unit (one SemVer version for all of its components) by release-please. The release pull request proposes the next version and the `CHANGELOG.md` entries; merging it tags `vX.Y.Z`, creates the GitHub Release, and builds and pushes every image of the repository in the same workflow run, each with a build provenance attestation. Tags `X.Y.Z` are never overwritten, and no image is tagged `latest`. The root repository is not released.
+
+```
+pull request (Conventional Commits title) ──► ci ──► squash merge to main
+main ──► release-please keeps the release pull request ──► merge ──► tag vX.Y.Z + GitHub Release
+                                                                      └─► build, push, and attest every image
+operator: set <SERVICE>_VERSION in .env ──► docker compose -f docker-compose.yml pull ──► up -d
+```
+
+### Image registry
+
+| Repository | Image (`ghcr.io/rtcryo/…`) | Version variable |
+|---|---|---|
+| authBuddy | `authbuddy-auth-service` | `AUTHBUDDY_VERSION` |
+| finanzBuddy | `finanzbuddy-api-gateway` | `FINANZBUDDY_VERSION` |
+| finanzBuddy | `finanzbuddy-parser-service` | `FINANZBUDDY_VERSION` |
+| finanzBuddy | `finanzbuddy-ui` | `FINANZBUDDY_VERSION` |
+| calendarBuddy | `calendarbuddy-calendar-api` | `CALENDARBUDDY_VERSION` |
+| calendarBuddy | `calendarbuddy-ui` | `CALENDARBUDDY_VERSION` |
+
+Images are `linux/amd64`, tagged `X.Y.Z` and `X.Y` (the latter moves to the newest patch of a minor version; deployments pin `X.Y.Z`), and the packages are public. Production Compose files reference them by `image:` with the version variable and do not build; the `docker-compose.override.yml` of each repository builds from source for local development and tags the result `<service>-<component>:dev`. The root stack (Prometheus, Grafana, Traefik) uses upstream images and has no version variable. A new service adds its images and variable to this table in its umbrella change.
+
+Rollout order: authBuddy first, because the product services verify tokens against it, then finanzBuddy and calendarBuddy. Rollback is setting the previous released version and recreating the stack.
+
 ## Identity contract (summary)
 
 - Issuer: authBuddy only. RS256 JWT with `kid`; claims `iss=homebuddy-auth`, `sub` = account UUID, `email`, `aud` = service names (`finanzbuddy`, `calendarbuddy`), `iat`, `exp`.

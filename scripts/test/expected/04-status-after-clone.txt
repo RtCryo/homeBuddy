@@ -1,0 +1,5 @@
+alpha           main                   0 changed  ahead 0, behind 0
+bravo           main                   1 changed  ahead 0, behind 0
+charlie         missing
+delta           missing
+exit: 0
