@@ -1,0 +1,5 @@
+> alpha: pulling
+~ bravo: local changes, skipped
+! charlie: missing, run 'scripts/repos.<ext> clone'
+! delta: missing, run 'scripts/repos.<ext> clone'
+exit: 1

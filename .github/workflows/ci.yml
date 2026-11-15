@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  openspec:
+    name: OpenSpec
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+
+      - name: Validate OpenSpec changes and specs
+        run: npx --yes @fission-ai/openspec@1.13.2 validate --all --strict --no-interactive
+
+  compose:
+    name: Compose
+    runs-on: ubuntu-latest
+    # CI-only values for every variable the Compose file requires.
+    env:
+      GRAFANA_ADMIN_PASSWORD: ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Validate the development configuration
+        run: docker compose config --quiet
+
+      - name: Validate the production configuration
+        run: docker compose -f docker-compose.yml --profile production config --quiet
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Lint the shell scripts
+        run: shellcheck scripts/repos.sh scripts/test/*.sh
+
+  scripts-linux:
+    name: Scripts (bash)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Test scripts/repos.sh
+        run: bash scripts/test/run-repos-tests.sh
+
+  scripts-windows:
+    name: Scripts (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Test scripts/repos.sh under Git Bash
+        shell: bash
+        run: bash scripts/test/run-repos-tests.sh
+
+      - name: Test scripts/repos.ps1 under Windows PowerShell 5.1
+        shell: powershell
+        run: ./scripts/test/run-repos-tests.ps1
+
+      - name: Test scripts/repos.ps1 under PowerShell 7
+        shell: pwsh
+        run: ./scripts/test/run-repos-tests.ps1
+
+  # The single status check that branch protection requires. It reports on every
+  # pull request and push; skipped jobs count as passed.
+  ci:
+    name: ci
+    if: always()
+    needs: [openspec, compose, shellcheck, scripts-linux, scripts-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the results of the needed jobs
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "$RESULTS"
+          if echo "$RESULTS" | grep -q -E '"(failure|cancelled)"'; then
+            echo "At least one job failed or was cancelled." >&2
+            exit 1
+          fi

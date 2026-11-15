@@ -1,0 +1,5 @@
+alpha           missing
+bravo           missing
+charlie         missing
+delta           missing
+exit: 0
