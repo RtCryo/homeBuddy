@@ -18,7 +18,7 @@
 
 ## 3. Verification
 
-- [ ] 3.1 Compare the `ci.yml` files of the three service repositories with the baseline in `homebuddy-delivery`: triggers, the `ci` gate, Spotless and verify per Java component, lint and build per UI, image build per deployable component, both Compose configurations, and pinned OpenSpec validation. Record any deviation as a follow-up change in the service repository.
+- [x] 3.1 Compare the `ci.yml` files of the three service repositories with the baseline in `homebuddy-delivery`: triggers, the `ci` gate, Spotless and verify per Java component, lint and build per UI, image build per deployable component, both Compose configurations, and pinned OpenSpec validation. Record any deviation as a follow-up change in the service repository.
 - [ ] 3.2 Merge a `fix:` pull request in one service and check that the release pull request proposes `1.0.1`, includes the fix in `CHANGELOG.md`, and updates the version in `.env.example`; merge a `docs:` pull request and check that no new version is proposed.
 - [ ] 3.3 Re-run the publication of an existing release with `workflow_dispatch` and the tag `v1.0.0`. Verify that every image is skipped and that the `1.0.0` digests are unchanged.
 - [ ] 3.4 Verify that starting each service production stack without its version variable fails naming `AUTHBUDDY_VERSION`, `FINANZBUDDY_VERSION`, or `CALENDARBUDDY_VERSION`, and that `docker compose up --build` in each repository builds all components from source and tags them `<service>-<component>:dev`.
