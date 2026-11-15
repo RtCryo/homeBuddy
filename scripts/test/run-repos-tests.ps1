@@ -123,4 +123,7 @@ finally {
     Remove-Item -Recurse -Force $workspace -ErrorAction SilentlyContinue
 }
 
+# Exit explicitly: $LASTEXITCODE still holds the code of the last failing step of the
+# script under test, and CI shells exit with it.
 if ($failed) { exit 1 }
+exit 0
