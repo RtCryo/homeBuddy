@@ -58,11 +58,15 @@ Every component SHALL record and export all traces by default (sampling probabil
 - **THEN** the called component does not record that request either
 
 ### Requirement: Spans do not carry secrets or personal data
-Span names and attributes SHALL NOT contain passwords, password hashes, access or refresh tokens, signing keys, cookies, `Authorization` headers, request or response bodies, e-mail addresses, or financial values. Span names SHALL use route templates instead of concrete paths. The collector SHALL remove attributes named for credentials or cookies (such as `http.request.header.authorization` and `http.request.header.cookie`) before storing a span, as a second line of defense. A service that finds such data in its spans SHALL remove it in its own change.
+Span names and attributes SHALL NOT contain passwords, password hashes, access or refresh tokens, signing keys, cookies, `Authorization` headers, request or response bodies, e-mail addresses, or financial values. Span names SHALL use route templates instead of concrete paths. The collector SHALL remove attributes named for credentials or cookies (such as `http.request.header.authorization` and `http.request.header.cookie`) before storing a span, as a second line of defense. Because exception messages can quote user input or document content, the collector SHALL also remove span status messages and exception messages and stack traces from spans and span events, keeping only the exception type. A service that finds such data in its spans SHALL remove it in its own change.
 
 #### Scenario: A user signs in
 - **WHEN** a user signs in to authBuddy and then calls a product API with the issued token
 - **THEN** no stored span contains the password, the token, or the e-mail address
+
+#### Scenario: A request fails with an exception
+- **WHEN** a component records an exception whose message quotes a value from the request or a document
+- **THEN** the stored span keeps its error status and the exception type, but no status message, exception message, or stack trace
 
 #### Scenario: Span names stay bounded
 - **WHEN** many different appointments are read by their identifier

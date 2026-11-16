@@ -115,6 +115,33 @@ otelcol.processor.attributes "scrub" {
 	}
 
 	output {
+		traces = [otelcol.processor.transform.exception_details.input]
+	}
+}
+
+// Exception messages and stack traces can quote user input or document content (a parser error
+// names the value it could not read). Keep only the exception type, for every service.
+otelcol.processor.transform "exception_details" {
+	error_mode = "ignore"
+
+	trace_statements {
+		context    = "span"
+		statements = [
+			`set(status.message, "")`,
+			`delete_key(attributes, "exception.message")`,
+			`delete_key(attributes, "exception.stacktrace")`,
+		]
+	}
+
+	trace_statements {
+		context    = "spanevent"
+		statements = [
+			`delete_key(attributes, "exception.message")`,
+			`delete_key(attributes, "exception.stacktrace")`,
+		]
+	}
+
+	output {
 		traces = [otelcol.processor.batch.default.input]
 	}
 }
