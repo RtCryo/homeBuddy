@@ -31,6 +31,10 @@ Browser ──HTTPS──► shared Traefik ── MONITORING_DOMAIN ──► h
                                                                                   ├─ finanzbuddy-api-gateway,
                                                                                   │  -parser-service, -kafka-exporter over finanzbuddy-metrics
                                                                                   └─ calendarbuddy-calendar-api       over calendarbuddy-metrics
+
+homebuddy-grafana ──► homebuddy-loki ◄── homebuddy-alloy ◄── Docker API (read-only socket):
+                      (root default network only)            stdout/stderr of every homebuddy-,
+                                                              authbuddy-, finanzbuddy-, calendarbuddy- container
 ```
 
 Traefik, the product UIs, and authBuddy share the external Docker network `homebuddy`. Product APIs do not join it: each reaches authBuddy only over its own external, internal-only identity network, whose members are that API and authBuddy (alias `auth` on every one). No stack can reach another stack's API, except the central Prometheus over that service's metrics network. Compose cannot create the identity networks, so operators create them once per host:
@@ -58,6 +62,18 @@ The root compose runs the only Prometheus (`homebuddy-prometheus`) and the only 
 - **Retention.** 15 days of samples in the `prometheus-data` volume.
 - **New services.** A new service adds its metrics network, scrape jobs, and dashboards folder here and in `monitoring/` in its umbrella change.
 
+## Logging
+
+The root compose also runs the only log store (`homebuddy-loki`) and the only log collector (`homebuddy-alloy`) of a host, without a Compose profile. Their configuration lives in [`monitoring/loki/`](../monitoring/loki/) and [`monitoring/alloy/`](../monitoring/alloy/). Normative rules: root capability `homebuddy-logging`.
+
+- **Log flow.** Docker API → Alloy → Loki → Grafana. Alloy reads stdout and stderr of every container whose name starts with `homebuddy-`, `authbuddy-`, `finanzbuddy-`, or `calendarbuddy-` through the read-only Docker socket, picks up containers started later, and ignores every other container. Services only log to stdout and stderr; no service stack changes or joins a root network for logging.
+- **Labels.** `service` (`authbuddy`, `finanzbuddy`, `calendarbuddy`, `homebuddy`, taken from the container name prefix and equal to the metric `service` label), `component` (Compose service name), `container`, and `stream` (`stdout` or `stderr`). No label comes from log content; Loki detects log levels into structured metadata only.
+- **Retention.** 15 days in the `loki-data` volume; Alloy keeps its read positions in `alloy-data`.
+- **Loki outages.** Alloy retries a batch without limit (backoff up to one minute), so lines written while Loki is down arrive once it returns. Restarting Alloy during a Loki outage loses the batch it holds in memory; the experimental `loki.write` WAL does not replay it in Alloy v1.22 and is not used.
+- **Access.** Loki runs without authentication and is therefore on the root default network only: neither Loki nor Alloy publishes a host port, locally or in production, and Traefik does not route them. Logs are read in Grafana, behind its sign-in: datasource `Loki` and the dashboard `homeBuddy Logs` in the `homeBuddy` folder, linked from the overview.
+- **Secrets.** Services never log passwords, tokens, signing keys, session cookies, or full request or response bodies. Loki runs at log level `warn`, because at `info` it logs the text of every query, which would store searched-for values in Loki.
+- **Docker log rotation.** Root containers use `json-file` with `max-size: 10m` and `max-file: 3`; service stacks keep their own settings.
+
 ## Delivery and releases
 
 Normative rules: root capability `homebuddy-delivery`. Every repository runs one CI workflow (`ci.yml`) on pull requests to `main` and pushes to `main`; its `ci` job is the single required check, together with the pull-request title check. Pull requests are squash-merged and titled with Conventional Commits.
@@ -82,7 +98,7 @@ operator: set <SERVICE>_VERSION in .env ──► docker compose -f docker-compo
 | calendarBuddy | `calendarbuddy-calendar-api` | `CALENDARBUDDY_VERSION` |
 | calendarBuddy | `calendarbuddy-ui` | `CALENDARBUDDY_VERSION` |
 
-Images are `linux/amd64`, tagged `X.Y.Z` and `X.Y` (the latter moves to the newest patch of a minor version; deployments pin `X.Y.Z`), and the packages are public. Production Compose files reference them by `image:` with the version variable and do not build; the `docker-compose.override.yml` of each repository builds from source for local development and tags the result `<service>-<component>:dev`. The root stack (Prometheus, Grafana, Traefik) uses upstream images and has no version variable. A new service adds its images and variable to this table in its umbrella change.
+Images are `linux/amd64`, tagged `X.Y.Z` and `X.Y` (the latter moves to the newest patch of a minor version; deployments pin `X.Y.Z`), and the packages are public. Production Compose files reference them by `image:` with the version variable and do not build; the `docker-compose.override.yml` of each repository builds from source for local development and tags the result `<service>-<component>:dev`. The root stack (Prometheus, Grafana, Loki, Alloy, Traefik) uses upstream images and has no version variable. A new service adds its images and variable to this table in its umbrella change.
 
 Rollout order: authBuddy first, because the product services verify tokens against it, then finanzBuddy and calendarBuddy. Rollback is setting the previous released version and recreating the stack.
 
@@ -96,7 +112,7 @@ Rollout order: authBuddy first, because the product services verify tokens again
 
 | Service | Ports |
 |---|---|
-| homeBuddy monitoring | Grafana 3001, Prometheus 9090 |
+| homeBuddy monitoring | Grafana 3001, Prometheus 9090 (Loki and Alloy publish no port) |
 | finanzBuddy | UI 3000, API 8080, Postgres 5432, S3 9000, Kafka 29092 |
 | calendarBuddy | UI 3010, API 8081, Postgres 5433 |
 | authBuddy | API 8090, Postgres 5434 |
@@ -106,5 +122,5 @@ New services claim unused ports in their umbrella change and update this table.
 ## Naming
 
 - Docker networks: `homebuddy` (external, shared by Traefik, UIs, authBuddy, and Grafana; aliases `auth`, `finanzbuddy-ui`, `calendarbuddy-ui`), one external, internal-only `<service>-identity` per product API (`finanzbuddy-identity`, `calendarbuddy-identity`), and one external, internal-only `<service>-metrics` per service (`authbuddy-metrics`, `finanzbuddy-metrics`, `calendarbuddy-metrics`).
-- Container names: `<service>-<component>` (for example `calendarbuddy-postgres`); the root stack uses `homebuddy-` (`homebuddy-traefik`, `homebuddy-prometheus`, `homebuddy-grafana`).
+- Container names: `<service>-<component>` (for example `calendarbuddy-postgres`); the root stack uses `homebuddy-` (`homebuddy-traefik`, `homebuddy-prometheus`, `homebuddy-grafana`, `homebuddy-loki`, `homebuddy-alloy`).
 - Domains: finanzBuddy `TRAEFIK_DOMAIN`, calendarBuddy `CALENDAR_DOMAIN`, monitoring portal `MONITORING_DOMAIN`.

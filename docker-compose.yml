@@ -30,13 +30,28 @@
 #     docker network create --internal finanzbuddy-metrics
 #     docker network create --internal calendarbuddy-metrics
 #
+# - Runs the central logging stack (see openspec homebuddy-logging): Loki, the
+#   only log store of a host, and Alloy, which reads stdout and stderr of every
+#   homebuddy-, authbuddy-, finanzbuddy-, and calendarbuddy- container through
+#   the read-only Docker socket. Both have no profile and always run, publish no
+#   host port locally or in production, and are not routed by Traefik. Read the
+#   logs in Grafana (dashboard "homeBuddy Logs", or Explore with Loki).
+#
 # Do not run a service-local Traefik on a host that runs this one.
 name: homebuddy
+
+# Bounds the Docker logs of the root containers; service stacks are unchanged.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
   traefik:
     image: traefik:v3.7.17
     container_name: homebuddy-traefik
+    logging: *default-logging
     profiles:
       - production
     restart: unless-stopped
@@ -64,6 +79,7 @@ services:
   prometheus:
     image: prom/prometheus:v3.16.0
     container_name: homebuddy-prometheus
+    logging: *default-logging
     restart: unless-stopped
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
@@ -81,6 +97,7 @@ services:
   grafana:
     image: grafana/grafana:13.3.0
     container_name: homebuddy-grafana
+    logging: *default-logging
     restart: unless-stopped
     depends_on:
       prometheus:
@@ -110,6 +127,42 @@ services:
       - default
       - homebuddy
 
+  loki:
+    image: grafana/loki:3.7.10
+    container_name: homebuddy-loki
+    logging: *default-logging
+    restart: unless-stopped
+    command:
+      - "-config.file=/etc/loki/loki.yml"
+      - "-target=all"
+    volumes:
+      - ./monitoring/loki:/etc/loki:ro
+      - loki-data:/loki
+    # Root default network only: Loki runs without authentication, so nothing outside the
+    # root stack may reach it.
+    networks:
+      - default
+
+  alloy:
+    image: grafana/alloy:v1.22.0
+    container_name: homebuddy-alloy
+    logging: *default-logging
+    restart: unless-stopped
+    depends_on:
+      loki:
+        condition: service_started
+    command:
+      - "run"
+      - "--server.http.listen-addr=0.0.0.0:12345"
+      - "--storage.path=/var/lib/alloy/data"
+      - "/etc/alloy/config.alloy"
+    volumes:
+      - ./monitoring/alloy:/etc/alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+    networks:
+      - default
+
 networks:
   homebuddy:
     name: homebuddy
@@ -128,3 +181,5 @@ volumes:
   traefik-acme:
   prometheus-data:
   grafana-data:
+  loki-data:
+  alloy-data:

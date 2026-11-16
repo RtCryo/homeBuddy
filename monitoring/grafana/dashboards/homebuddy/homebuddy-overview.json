@@ -25,6 +25,13 @@
       "url": "/dashboards/f/calendarbuddy/",
       "icon": "folder",
       "targetBlank": false
+    },
+    {
+      "title": "Logs",
+      "type": "link",
+      "url": "/d/homebuddy-logs",
+      "icon": "doc",
+      "targetBlank": false
     }
   ],
   "refresh": "30s",
