@@ -206,6 +206,9 @@ services:
     volumes:
       - ./monitoring/tempo:/etc/tempo:ro
       - tempo-data:/var/tempo
+    # No Docker healthcheck: the image is distroless (no shell or HTTP client to probe /ready),
+    # and nothing waits for Tempo to be healthy. Check readiness from the root network:
+    #   docker run --rm --network homebuddy_default busybox wget -qO- http://tempo:3200/ready
     # Root default network only: Tempo runs without authentication, and its query API must
     # not be reachable from any service stack.
     networks:

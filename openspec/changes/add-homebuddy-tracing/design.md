@@ -86,7 +86,7 @@ Grafana provisioning:
 
 ### Compose and startup order
 
-`tempo` gets no profile, no published port, the `json-file` log rotation that `add-homebuddy-logging` sets on root services, and a healthcheck on `/ready`. The Tempo image is distroless and runs as uid 10001, while a new named volume is owned by root; a one-shot `tempo-init` container (`busybox`, `network_mode: none`) hands `tempo-data` to uid 10001 before Tempo starts. Alloy gets the three metrics networks as additional external networks and `depends_on: tempo` (started, not healthy, so log collection starts even if Tempo is slow). Grafana does not depend on Tempo. The compose header gains a short "Tracing" note: services send OTLP to `homebuddy-alloy:4318` over their metrics network, nothing is published, traces are read in Grafana.
+`tempo` gets no profile, no published port, and the `json-file` log rotation that `add-homebuddy-logging` sets on root services. It has no Docker healthcheck, like Loki and Alloy: the image is distroless, without a shell or HTTP client to probe `/ready`, and nothing waits for Tempo to be healthy. `/ready` is checked from the root network during verification instead. The Tempo image and runs as uid 10001, while a new named volume is owned by root; a one-shot `tempo-init` container (`busybox`, `network_mode: none`) hands `tempo-data` to uid 10001 before Tempo starts. Alloy gets the three metrics networks as additional external networks and `depends_on: tempo` (started, not healthy, so log collection starts even if Tempo is slow). Grafana does not depend on Tempo. The compose header gains a short "Tracing" note: services send OTLP to `homebuddy-alloy:4318` over their metrics network, nothing is published, traces are read in Grafana.
 
 ## Risks / Trade-offs
 
