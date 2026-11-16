@@ -59,8 +59,18 @@ loki.source.docker "homebuddy" {
 	forward_to    = [loki.write.central.receiver]
 }
 
+// Lines must survive a Loki outage of any length: once a line is read, its Docker read
+// position has advanced and it is never read again. With unlimited retries a pending
+// batch is kept in memory and resent until Loki accepts it. Restarting Alloy while Loki is
+// down loses that batch; the experimental loki.write WAL (Alloy v1.22) does not replay it
+// after a restart either, so it is not used.
 loki.write "central" {
 	endpoint {
 		url = "http://loki:3100/loki/api/v1/push"
+
+		// 0 retries forever; the default of 10 drops a batch after about 8.5 minutes.
+		max_backoff_retries = 0
+		// Resume delivery within a minute after Loki returns.
+		max_backoff_period = "1m"
 	}
 }

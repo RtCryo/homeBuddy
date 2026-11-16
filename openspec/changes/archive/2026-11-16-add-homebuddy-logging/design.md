@@ -68,7 +68,7 @@ The "no secrets in logs" requirement is a root convention. This change checks it
 - [Docker socket access: read-only socket access still allows full Docker API reads, including environment variables of every container] → Same exposure as the existing Traefik; Alloy runs a pinned official image with a read-only config, publishes no port, and joins no network besides the root default network.
 - [Logs contain personal data such as e-mail addresses in error messages] → Retention is limited to 15 days, logs are reachable only through Grafana's sign-in, and the secrets convention is verified. Removing personal data from logs is out of scope.
 - [Service stacks' own Docker logs grow without rotation] → Unchanged by this change; Loki retention does not affect Docker's local files. Listed as a non-goal; a later convention can add rotation.
-- [Loki down or slow] → Alloy buffers and retries; it keeps its read positions, so lines written meanwhile are sent when Loki returns, as long as Docker still has them. Metrics and services are unaffected.
+- [Loki down or slow] → Alloy buffers and retries without limit (`max_backoff_retries = 0`; the default of 10 drops a batch), so lines written meanwhile are sent when Loki returns. Restarting Alloy during the outage loses the batch held in memory; the experimental `loki.write` WAL does not replay it after a restart in Alloy v1.22, so it is not used. Metrics and services are unaffected.
 - [Disk usage of `loki-data`] → Bounded by 15-day retention; the README documents how to check the volume size.
 - [Error panel relies on keywords] → Best-effort without structured logs; services can adopt structured logging later without changing this contract.
 
