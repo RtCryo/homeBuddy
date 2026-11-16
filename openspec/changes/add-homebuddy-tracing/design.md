@@ -56,16 +56,19 @@ Alloy keeps no persistent queue for traces: if Tempo is down, its exporter retri
 
 Each per-service change adds Spring Boot 4's OpenTelemetry starter (`spring-boot-starter-opentelemetry`, Micrometer Tracing with the OpenTelemetry bridge and the OTLP exporter) and configures it through environment variables in its `docker-compose.yml`:
 
-- OTLP tracing endpoint `http://homebuddy-alloy:4318/v1/traces` (the Spring Boot property under `management.opentelemetry.tracing.export.otlp`; the exact key is confirmed against the Boot 4.1 reference during implementation).
-- `management.tracing.sampling.probability`, default `1.0`, overridable with `MANAGEMENT_TRACING_SAMPLING_PROBABILITY`. Micrometer's default sampler is parent-based, so a downstream component follows the caller's decision.
+- OTLP tracing endpoint `http://homebuddy-alloy:4318/v1/traces` in `MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT` (Boot 4.1 property `management.opentelemetry.tracing.export.otlp.endpoint`), set only in Compose: Boot creates the span exporter only when the property is present, so tests and host runs export nothing.
+- `management.tracing.sampling.probability: 1.0` in `application.yml` (Boot's default is 0.1), overridden through `MANAGEMENT_TRACING_SAMPLING_PROBABILITY`, which each Compose file fills from a per-component `.env` variable (`<COMPONENT>_TRACING_SAMPLING_PROBABILITY`). Micrometer's default sampler is parent-based, so a downstream component follows the caller's decision.
+- `management.otlp.metrics.export.enabled: false` and `management.logging.export.otlp.enabled: false`: the starter also brings the OTLP meter registry, which would otherwise push metrics to `localhost:4318`.
 - Resource attributes `service.name=<service>-<component>` and `service.namespace=<service>` via `management.opentelemetry.resource-attributes`.
 - W3C propagation (`management.tracing.propagation.type=w3c`, the default).
 
-Observed automatically: incoming Spring MVC requests (span name `<METHOD> <route template>`), `RestClient`/`RestTemplate` built from the auto-configured builders, Spring Kafka templates and listeners once `spring.kafka.template.observation-enabled=true` and `spring.kafka.listener.observation-enabled=true` are set, and `@Scheduled` methods. Per-service specifics:
+Observed automatically: incoming Spring MVC requests (span name `http <method> <route template>`), Spring Security's filter-chain and authorization steps, Spring Kafka templates and listeners once observation is enabled (`spring.kafka.template.observation-enabled=true`, or `setObservationEnabled(true)` on factories and templates a service builds itself), and `@Scheduled` methods. HTTP clients are observed when they carry the `ObservationRegistry`; in Boot 4 the auto-configured `RestClient.Builder` and `RestTemplateBuilder` come only with a separate REST client module that no component uses, so clients set the registry themselves. Per-service specifics:
 
-- Product APIs build their `JwtDecoder` with a `RestTemplate` or `RestClient` from the auto-configured builder, so the JWKS fetch is a client span in the request trace.
+- Product APIs give their `NimbusJwtDecoder` a `RestTemplate` with the observation registry, so the JWKS fetch is a client span in the request trace.
 - finanzBuddy stores the W3C `traceparent` of the upload request in the outbox row (a new nullable column) and `OutboxRelay` publishes each event inside a span whose parent is that context, so upload → Kafka → parser → status callback is one trace. Rows written before the migration have no context and start new traces.
-- `parser-service`'s `RestClientConfig` builds the client from `RestClient.builder()` directly; it must take the injected, observed builder instead.
+- `parser-service`'s `RestClientConfig` builds its own `RestClient.Builder`; it sets the observation registry on it, so `GatewayStatusClient` callbacks are client spans.
+- Health checks and scrapes of `/actuator/**` and finanzBuddy's `@Scheduled` polls would create a trace every few seconds. A `SpanExportingPredicate` drops those spans before export, and an `ObservationPredicate` skips Spring Security observations inside actuator requests, whose spans would otherwise be exported without their parent. Observations still run, so metrics are unchanged.
+- authBuddy wrote no log line per request; it now logs each sign-in outcome (no e-mail or address), so a sign-in can be found from its trace.
 
 The OTLP exporter sends asynchronously with a bounded queue and short timeout, so an unreachable collector only causes dropped spans and periodic warnings in the log.
 
@@ -83,7 +86,7 @@ Grafana provisioning:
 
 ### Compose and startup order
 
-`tempo` gets no profile, no published port, the `json-file` log rotation that `add-homebuddy-logging` sets on root services, and a healthcheck on `/ready`. Alloy gets the three metrics networks as additional external networks and `depends_on: tempo` (started, not healthy, so log collection starts even if Tempo is slow). Grafana does not depend on Tempo. The compose header gains a short "Tracing" note: services send OTLP to `homebuddy-alloy:4318` over their metrics network, nothing is published, traces are read in Grafana.
+`tempo` gets no profile, no published port, the `json-file` log rotation that `add-homebuddy-logging` sets on root services, and a healthcheck on `/ready`. The Tempo image is distroless and runs as uid 10001, while a new named volume is owned by root; a one-shot `tempo-init` container (`busybox`, `network_mode: none`) hands `tempo-data` to uid 10001 before Tempo starts. Alloy gets the three metrics networks as additional external networks and `depends_on: tempo` (started, not healthy, so log collection starts even if Tempo is slow). Grafana does not depend on Tempo. The compose header gains a short "Tracing" note: services send OTLP to `homebuddy-alloy:4318` over their metrics network, nothing is published, traces are read in Grafana.
 
 ## Risks / Trade-offs
 

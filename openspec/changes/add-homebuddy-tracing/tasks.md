@@ -22,20 +22,20 @@
 
 ## 5. Coordinated rollout
 
-- [ ] 5.1 authBuddy: implement `add-auth-tracing`. Verify that a sign-in produces a trace with `service.name = "authbuddy-auth-service"` and that the matching log line in Loki contains its trace id.
-- [ ] 5.2 calendarBuddy: implement `add-calendar-tracing`. Verify that creating an appointment produces a trace with `service.name = "calendarbuddy-calendar-api"`, a span name built from the route template, and, after a restart of `calendar-api`, a JWKS client span to authBuddy in the first authenticated request's trace.
-- [ ] 5.3 finanzBuddy: implement `add-finanz-tracing`. Verify that one statement upload produces one trace containing the `api-gateway` upload request, the outbox publish, the `parser-service` consumer span, and the status callback.
-- [ ] 5.4 Check that the metrics networks Alloy joins in the root compose match the set in every service compose file and in `docs/ARCHITECTURE.md`, by comparing the `docker compose config` output of each stack.
+- [x] 5.1 authBuddy: implement `add-auth-tracing`. Verify that a sign-in produces a trace with `service.name = "authbuddy-auth-service"` and that the matching log line in Loki contains its trace id.
+- [x] 5.2 calendarBuddy: implement `add-calendar-tracing`. Verify that creating an appointment produces a trace with `service.name = "calendarbuddy-calendar-api"`, a span name built from the route template, and, after a restart of `calendar-api`, a JWKS client span to authBuddy in the first authenticated request's trace.
+- [x] 5.3 finanzBuddy: implement `add-finanz-tracing`. Verify that one statement upload produces one trace containing the `api-gateway` upload request, the outbox publish, the `parser-service` consumer span, and the status callback.
+- [x] 5.4 Check that the metrics networks Alloy joins in the root compose match the set in every service compose file and in `docs/ARCHITECTURE.md`, by comparing the `docker compose config` output of each stack.
 
 ## 6. Verification
 
-- [ ] 6.1 Verify isolation with all stacks running: `homebuddy-tempo` does not resolve from `authbuddy-auth-service`, `finanzbuddy-api-gateway`, `finanzbuddy-parser-service`, `calendarbuddy-calendar-api`, or any UI; from `calendarbuddy-calendar-api`, `homebuddy-alloy:4318` is reachable but `homebuddy-alloy:12345` is not; the names `finanzbuddy-api-gateway` and `calendarbuddy-calendar-api` still do not resolve from the other service's containers.
-- [ ] 6.2 Verify resilience: stop `homebuddy-alloy`, then sign in, create an appointment, and upload a statement. All succeed with normal response times, and the services only log export warnings. Start Alloy again and verify that new requests are traced without restarting any service.
-- [ ] 6.3 Verify the privacy rules: after the flows in 5.1–5.3 with a known test password and e-mail address, search Tempo with TraceQL for the password, the token (and an `eyJ` prefix), the e-mail address, and any `http.request.header.*` attribute. Record any finding; open a follow-up change in the owning service repository, and hold the production rollout if a password or token is found.
+- [x] 6.1 Verify isolation with all stacks running: `homebuddy-tempo` does not resolve from `authbuddy-auth-service`, `finanzbuddy-api-gateway`, `finanzbuddy-parser-service`, `calendarbuddy-calendar-api`, or any UI; from `calendarbuddy-calendar-api`, `homebuddy-alloy:4318` is reachable but `homebuddy-alloy:12345` is not; the names `finanzbuddy-api-gateway` and `calendarbuddy-calendar-api` still do not resolve from the other service's containers.
+- [x] 6.2 Verify resilience: stop `homebuddy-alloy`, then sign in, create an appointment, and upload a statement. All succeed with normal response times, and the services only log export warnings. Start Alloy again and verify that new requests are traced without restarting any service.
+- [x] 6.3 Verify the privacy rules: after the flows in 5.1–5.3 with a known test password and e-mail address, search Tempo with TraceQL for the password, the token (and an `eyJ` prefix), the e-mail address, and any `http.request.header.*` attribute. Record any finding; open a follow-up change in the owning service repository, and hold the production rollout if a password or token is found.
 - [ ] 6.4 Verify the Grafana links: from an error line of `finanzbuddy-api-gateway` in `homebuddy-logs` the TraceID link opens its trace, and from a span of `calendarbuddy-calendar-api` the logs link shows that request's calendarBuddy log lines.
-- [ ] 6.5 Verify sampling: set `MANAGEMENT_TRACING_SAMPLING_PROBABILITY=0` on `calendar-api`, recreate it, and confirm that its requests produce no traces while other components still do; restore the default.
-- [ ] 6.6 Verify retention and persistence: query Tempo's `/status/config` from inside the root network and confirm `block_retention: 360h`; recreate `homebuddy-tempo` and confirm that earlier traces are still found.
-- [ ] 6.7 Verify production on one host with `docker compose -f docker-compose.yml --profile production up -d`: no container besides Traefik binds a host port, `https://<MONITORING_DOMAIN>` without a session shows no traces, and after sign-in the traces dashboard shows all three services.
+- [x] 6.5 Verify sampling: set `MANAGEMENT_TRACING_SAMPLING_PROBABILITY=0` on `calendar-api`, recreate it, and confirm that its requests produce no traces while other components still do; restore the default.
+- [x] 6.6 Verify retention and persistence: query Tempo's `/status/config` from inside the root network and confirm `block_retention: 360h`; recreate `homebuddy-tempo` and confirm that earlier traces are still found.
+- [x] 6.7 Verify production on one host with `docker compose -f docker-compose.yml --profile production up -d`: no container besides Traefik binds a host port, `https://<MONITORING_DOMAIN>` without a session shows no traces, and after sign-in the traces dashboard shows all three services.
 
 ## 7. Archive
 
