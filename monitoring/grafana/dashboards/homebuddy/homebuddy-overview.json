@@ -32,6 +32,13 @@
       "url": "/d/homebuddy-logs",
       "icon": "doc",
       "targetBlank": false
+    },
+    {
+      "title": "Traces",
+      "type": "link",
+      "url": "/d/homebuddy-traces",
+      "icon": "info",
+      "targetBlank": false
     }
   ],
   "refresh": "30s",

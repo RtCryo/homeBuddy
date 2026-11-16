@@ -1,0 +1,36 @@
+apiVersion: 1
+
+# Central homeBuddy trace store (see openspec homebuddy-tracing). Reachable only on the
+# root default network.
+datasources:
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    isDefault: false
+    editable: false
+    jsonData:
+      # From a span to the log lines of its service that contain its trace id. The span's
+      # service.namespace (authbuddy, finanzbuddy, calendarbuddy) is the Loki label `service`.
+      tracesToLogsV2:
+        datasourceUid: loki
+        tags:
+          - key: service.namespace
+            value: service
+        filterByTraceID: true
+        filterBySpanID: false
+        spanStartTimeShift: "-5m"
+        spanEndTimeShift: "5m"
+      # No service graph: the metrics generator writes nothing to Prometheus.
+      nodeGraph:
+        enabled: false
+      search:
+        hide: false
+      # Look traces up by id without a time range: a log line's trace can start before the
+      # dashboard range (an outbox publish runs after its upload request).
+      traceQuery:
+        timeShiftEnabled: false
+      streamingEnabled:
+        search: true
+        metrics: true

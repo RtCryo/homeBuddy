@@ -1,0 +1,64 @@
+# Central homeBuddy trace store (see openspec homebuddy-tracing).
+# Monolithic Tempo with local storage in the `tempo-data` volume. Tempo joins only the root
+# default network: Alloy forwards traces to tempo:4317 and Grafana queries http://tempo:3200.
+# Nothing else may reach it, because Tempo runs without authentication.
+
+server:
+  http_listen_port: 3200
+  # At info level Tempo logs every query. Its own logs are collected into Loki, so a trace
+  # search for a secret would store that secret; warn keeps queries out.
+  log_level: warn
+
+# Lets Grafana stream TraceQL search results over HTTP.
+stream_over_http_enabled: true
+
+distributor:
+  receivers:
+    # OTLP gRPC only, for Alloy. Services never send here directly; they send OTLP/HTTP to
+    # Alloy, which scrubs credential attributes first.
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+
+# TraceQL metrics may cover the whole retention; the default limit is 3h, which breaks the
+# dashboard's metric panels for longer time ranges.
+query_frontend:
+  metrics:
+    max_duration: 360h
+
+compactor:
+  compaction:
+    # 15 days, the same as Prometheus and Loki.
+    block_retention: 360h
+
+# TraceQL metrics (rate(), quantile_over_time()) for the traces dashboard. Only the
+# local-blocks processor runs, so nothing is remote-written to Prometheus.
+metrics_generator:
+  processor:
+    local_blocks:
+      flush_to_storage: true
+      # Keep every span, not only server spans: parser-service handles documents in Kafka
+      # consumer spans, which the dashboard counts next to HTTP requests.
+      filter_server_spans: false
+  storage:
+    path: /var/tempo/generator/wal
+  traces_storage:
+    path: /var/tempo/generator/traces
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/tempo/wal
+    local:
+      path: /var/tempo/blocks
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors:
+        - local-blocks
+
+usage_report:
+  reporting_enabled: false
