@@ -21,6 +21,12 @@ distributor:
         grpc:
           endpoint: 0.0.0.0:4317
 
+# TraceQL metrics may cover the whole retention; the default limit is 3h, which breaks the
+# dashboard's metric panels for longer time ranges.
+query_frontend:
+  metrics:
+    max_duration: 360h
+
 compactor:
   compaction:
     # 15 days, the same as Prometheus and Loki.
@@ -32,6 +38,9 @@ metrics_generator:
   processor:
     local_blocks:
       flush_to_storage: true
+      # Keep every span, not only server spans: parser-service handles documents in Kafka
+      # consumer spans, which the dashboard counts next to HTTP requests.
+      filter_server_spans: false
   storage:
     path: /var/tempo/generator/wal
   traces_storage:

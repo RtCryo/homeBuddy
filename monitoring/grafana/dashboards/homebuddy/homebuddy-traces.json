@@ -24,8 +24,8 @@
     {
       "id": 1,
       "type": "timeseries",
-      "title": "Request rate per component",
-      "description": "Server spans per second, computed from traces (TraceQL metrics on Tempo's local blocks).",
+      "title": "Request and message rate per component",
+      "description": "Server spans (HTTP requests) and consumer spans (Kafka messages) per second, computed from traces (TraceQL metrics on Tempo's local blocks).",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -66,7 +66,7 @@
           },
           "queryType": "traceql",
           "metricsQueryType": "range",
-          "query": "{resource.service.namespace=~\"$service\" && resource.service.name=~\"$component\" && kind=server} | rate() by (resource.service.name)"
+          "query": "{resource.service.namespace=~\"$service\" && resource.service.name=~\"$component\" && (kind=server || kind=consumer)} | rate() by (resource.service.name)"
         }
       ]
     },
@@ -74,7 +74,7 @@
       "id": 2,
       "type": "timeseries",
       "title": "Error rate per component",
-      "description": "Server spans with an error status per second.",
+      "description": "Server and consumer spans with an error status per second.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -115,7 +115,7 @@
           },
           "queryType": "traceql",
           "metricsQueryType": "range",
-          "query": "{resource.service.namespace=~\"$service\" && resource.service.name=~\"$component\" && kind=server && status=error} | rate() by (resource.service.name)"
+          "query": "{resource.service.namespace=~\"$service\" && resource.service.name=~\"$component\" && (kind=server || kind=consumer) && status=error} | rate() by (resource.service.name)"
         }
       ]
     },
@@ -123,7 +123,7 @@
       "id": 3,
       "type": "timeseries",
       "title": "p95 duration per component",
-      "description": "95th percentile of server span duration.",
+      "description": "95th percentile duration of server and consumer spans.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -164,7 +164,7 @@
           },
           "queryType": "traceql",
           "metricsQueryType": "range",
-          "query": "{resource.service.namespace=~\"$service\" && resource.service.name=~\"$component\" && kind=server} | quantile_over_time(duration, .95) by (resource.service.name)"
+          "query": "{resource.service.namespace=~\"$service\" && resource.service.name=~\"$component\" && (kind=server || kind=consumer)} | quantile_over_time(duration, .95) by (resource.service.name)"
         }
       ]
     },
@@ -172,7 +172,7 @@
       "id": 4,
       "type": "table",
       "title": "Recent error traces",
-      "description": "The most recent traces with a failed server span. Open a trace ID to see the trace and its logs.",
+      "description": "The most recent traces with a failed request or message. Open a trace ID to see the trace and its logs.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -201,7 +201,7 @@
           "queryType": "traceql",
           "tableType": "traces",
           "limit": 20,
-          "query": "{resource.service.namespace=~\"$service\" && resource.service.name=~\"$component\" && kind=server && status=error}"
+          "query": "{resource.service.namespace=~\"$service\" && resource.service.name=~\"$component\" && (kind=server || kind=consumer) && status=error}"
         }
       ]
     },
@@ -209,7 +209,7 @@
       "id": 5,
       "type": "table",
       "title": "Slowest recent traces",
-      "description": "The slowest of the 100 most recent traces with a server span of the selected components.",
+      "description": "The slowest of the 100 most recent traces with a request or message of the selected components.",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
@@ -238,7 +238,7 @@
           "queryType": "traceql",
           "tableType": "traces",
           "limit": 100,
-          "query": "{resource.service.namespace=~\"$service\" && resource.service.name=~\"$component\" && kind=server}"
+          "query": "{resource.service.namespace=~\"$service\" && resource.service.name=~\"$component\" && (kind=server || kind=consumer)}"
         }
       ],
       "transformations": [
