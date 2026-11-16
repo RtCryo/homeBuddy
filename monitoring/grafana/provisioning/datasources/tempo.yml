@@ -27,10 +27,10 @@ datasources:
         enabled: false
       search:
         hide: false
+      # Look traces up by id without a time range: a log line's trace can start before the
+      # dashboard range (an outbox publish runs after its upload request).
       traceQuery:
-        timeShiftEnabled: true
-        spanStartTimeShift: "-5m"
-        spanEndTimeShift: "5m"
+        timeShiftEnabled: false
       streamingEnabled:
         search: true
         metrics: true
