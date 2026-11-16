@@ -59,7 +59,7 @@ docker network create --internal finanzbuddy-identity
 docker network create --internal calendarbuddy-identity
 ```
 
-Monitoring uses one more internal-only network per service, shared only by that service's metrics endpoints and the central Prometheus. Create these once on every host, too:
+Monitoring uses one more internal-only network per service, shared only by that service's components, the central Prometheus, and the central collector Alloy, which receives the services' traces over it. Create these once on every host, too:
 
 ```bash
 docker network create --internal authbuddy-metrics
@@ -80,6 +80,14 @@ Logging starts with the same command: Loki (`homebuddy-loki`) stores the logs an
 
 ```bash
 docker system df -v | grep homebuddy_loki-data
+```
+
+Tracing starts with the same command, too: Tempo (`homebuddy-tempo`) stores traces and Alloy receives them from the services on `homebuddy-alloy:4318` over their metrics networks. Neither publishes a port. Read traces in Grafana: open **homeBuddy Traces** from the overview (request rate, error rate, and p95 duration per component, recent error traces, and the slowest recent traces, filterable by service and component), or use **Explore** with the `Tempo` datasource and a TraceQL query such as `{resource.service.name="calendarbuddy-calendar-api" && status=error}`. A span's logs link opens its service's log lines with the trace id, and a trace id in a log line links back to the trace.
+
+Every request is traced by default. To lower a component's sampling probability, set its variable in that service's `.env` (for example `CALENDAR_API_TRACING_SAMPLING_PROBABILITY=0.2`; `0` turns tracing off for requests that start there) and recreate the component with `docker compose up -d`. Traces are kept for 15 days in the `tempo-data` volume; check its size with:
+
+```bash
+docker system df -v | grep homebuddy_tempo-data
 ```
 
 On a production host, the same file also runs the shared Traefik, the only container that binds ports 80 and 443, and publishes Grafana on `MONITORING_DOMAIN` over HTTPS (create a DNS record for it first). Set `GRAFANA_ADMIN_PASSWORD`, `MONITORING_DOMAIN`, `GRAFANA_COOKIE_SECURE=true`, and `TRAEFIK_ACME_EMAIL` in `.env`. Start it without the local override, which would publish Grafana and Prometheus on host ports:

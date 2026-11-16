@@ -12,3 +12,12 @@ datasources:
     editable: false
     jsonData:
       maxLines: 1000
+      # Spring Boot writes `[<traceId>-<spanId>]` into every log line inside a trace
+      # (homebuddy-tracing); the trace id links to the trace in Tempo.
+      derivedFields:
+        - name: TraceID
+          matcherType: regex
+          matcherRegex: '\[([0-9a-f]{32})-[0-9a-f]{16}\]'
+          datasourceUid: tempo
+          url: '$${__value.raw}'  # $$ escapes Grafana's environment variable expansion
+          urlDisplayLabel: View trace

@@ -74,3 +74,66 @@ loki.write "central" {
 		max_backoff_period = "1m"
 	}
 }
+
+// Central homeBuddy trace receiver (see openspec homebuddy-tracing).
+// Services send OTLP over HTTP to homebuddy-alloy:4318 over their <service>-metrics network.
+// Alloy removes attributes that may carry credentials, batches the spans, and forwards them
+// to the central Tempo on the root default network. Tempo itself joins no service network.
+
+// HTTP only: no gRPC listener, so 4318 is the only port services can reach. Alloy's own
+// HTTP server (UI, debug, /metrics) listens on 127.0.0.1:12345 only (see docker-compose.yml).
+otelcol.receiver.otlp "services" {
+	http {
+		endpoint = "0.0.0.0:4318"
+	}
+
+	output {
+		traces = [otelcol.processor.attributes.scrub.input]
+	}
+}
+
+// Second line of defense: services must not record these attributes in the first place.
+otelcol.processor.attributes "scrub" {
+	action {
+		key    = "http.request.header.authorization"
+		action = "delete"
+	}
+
+	action {
+		key    = "http.request.header.cookie"
+		action = "delete"
+	}
+
+	action {
+		key    = "http.response.header.set-cookie"
+		action = "delete"
+	}
+
+	action {
+		pattern = "(?i).*(password|token|secret).*"
+		action  = "delete"
+	}
+
+	output {
+		traces = [otelcol.processor.batch.default.input]
+	}
+}
+
+otelcol.processor.batch "default" {
+	output {
+		traces = [otelcol.exporter.otlp.tempo.input]
+	}
+}
+
+// Traces are diagnostic: while Tempo is down the in-memory queue retries and drops spans
+// once it is full. There is no persistent queue.
+otelcol.exporter.otlp "tempo" {
+	client {
+		endpoint = "tempo:4317"
+
+		// Plain gRPC: the traffic stays on the root default network.
+		tls {
+			insecure = true
+		}
+	}
+}

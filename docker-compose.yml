@@ -37,6 +37,14 @@
 #   host port locally or in production, and are not routed by Traefik. Read the
 #   logs in Grafana (dashboard "homeBuddy Logs", or Explore with Loki).
 #
+# - Tracing (see openspec homebuddy-tracing): Tempo, the only trace store of a
+#   host, runs without a profile on the root default network only. Services send
+#   OTLP over HTTP to `homebuddy-alloy:4318` over their own `<service>-metrics`
+#   network; Alloy joins every metrics network for that, removes credential
+#   attributes, and forwards the spans to Tempo. Only Alloy's port 4318 is
+#   reachable there; nothing is published or routed by Traefik. Read traces in
+#   Grafana (dashboard "homeBuddy Traces", or Explore with Tempo).
+#
 # Do not run a service-local Traefik on a host that runs this one.
 name: homebuddy
 
@@ -151,15 +159,55 @@ services:
     depends_on:
       loki:
         condition: service_started
+      # Started, not healthy: log collection must not wait for Tempo.
+      tempo:
+        condition: service_started
     command:
       - "run"
-      - "--server.http.listen-addr=0.0.0.0:12345"
+      # Loopback only: on the metrics networks only the OTLP receiver (4318) is reachable.
+      - "--server.http.listen-addr=127.0.0.1:12345"
       - "--storage.path=/var/lib/alloy/data"
       - "/etc/alloy/config.alloy"
     volumes:
       - ./monitoring/alloy:/etc/alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy-data:/var/lib/alloy/data
+    # The metrics networks only to receive traces from services (homebuddy-tracing); Alloy
+    # never connects to a service container.
+    networks:
+      - default
+      - authbuddy-metrics
+      - finanzbuddy-metrics
+      - calendarbuddy-metrics
+
+  # The Tempo image is distroless and runs as uid 10001; a new named volume is owned by
+  # root. This one-shot container hands the volume to Tempo before it starts.
+  tempo-init:
+    image: busybox:1.37.0
+    container_name: homebuddy-tempo-init
+    logging: *default-logging
+    restart: "no"
+    user: root
+    command: ["chown", "-R", "10001:10001", "/var/tempo"]
+    volumes:
+      - tempo-data:/var/tempo
+    network_mode: none
+
+  tempo:
+    image: grafana/tempo:2.10.10
+    container_name: homebuddy-tempo
+    logging: *default-logging
+    restart: unless-stopped
+    depends_on:
+      tempo-init:
+        condition: service_completed_successfully
+    command:
+      - "-config.file=/etc/tempo/tempo.yml"
+    volumes:
+      - ./monitoring/tempo:/etc/tempo:ro
+      - tempo-data:/var/tempo
+    # Root default network only: Tempo runs without authentication, and its query API must
+    # not be reachable from any service stack.
     networks:
       - default
 
@@ -183,3 +231,4 @@ volumes:
   grafana-data:
   loki-data:
   alloy-data:
+  tempo-data:
