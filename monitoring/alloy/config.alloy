@@ -1,0 +1,66 @@
+// Central homeBuddy log collector (see openspec homebuddy-logging).
+// Tails stdout and stderr of every homeBuddy container through the read-only Docker
+// socket and pushes the lines to the central Loki. Containers of other projects on the
+// same host are dropped before they are tailed.
+
+// List the containers on the host. Containers started later are picked up on refresh.
+discovery.docker "containers" {
+	host             = "unix:///var/run/docker.sock"
+	refresh_interval = "5s"
+}
+
+// Keep only homeBuddy containers and set the target labels.
+discovery.relabel "homebuddy" {
+	targets = discovery.docker.containers.targets
+
+	// Docker reports container names with a leading slash.
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(homebuddy|authbuddy|finanzbuddy|calendarbuddy)-.*"
+		action        = "keep"
+	}
+
+	// `service` comes from the container name prefix, so it matches the metric `service`
+	// label even if a stack runs under another Compose project name.
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(homebuddy|authbuddy|finanzbuddy|calendarbuddy)-.*"
+		target_label  = "service"
+		replacement   = "$1"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "component"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container"
+		replacement   = "$1"
+	}
+}
+
+// Applied per log entry: the log stream is known only while tailing.
+discovery.relabel "stream" {
+	targets = []
+
+	rule {
+		source_labels = ["__meta_docker_container_log_stream"]
+		target_label  = "stream"
+	}
+}
+
+loki.source.docker "homebuddy" {
+	host          = "unix:///var/run/docker.sock"
+	targets       = discovery.relabel.homebuddy.output
+	relabel_rules = discovery.relabel.stream.rules
+	forward_to    = [loki.write.central.receiver]
+}
+
+loki.write "central" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}

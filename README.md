@@ -76,6 +76,12 @@ docker compose up -d
 
 Grafana is then at <http://localhost:3001> and Prometheus at <http://localhost:9090>. Sign in to Grafana as `admin` with `GRAFANA_ADMIN_PASSWORD`; the homeBuddy overview opens first and each service has its own folder. Services whose stacks are not running show as down. Ports 3001 and 9090 must be free: stop finanzBuddy's own Prometheus and Grafana first if your finanzBuddy checkout still starts them.
 
+Logging starts with the same command: Loki (`homebuddy-loki`) stores the logs and Alloy (`homebuddy-alloy`) collects stdout and stderr of every `homebuddy-`, `authbuddy-`, `finanzbuddy-`, and `calendarbuddy-` container, including stacks started later. Neither publishes a port. Read the logs in Grafana: open **homeBuddy Logs** from the overview (log volume, error lines, and a log view filterable by service and component), or use **Explore** with the `Loki` datasource and a query such as `{service="calendarbuddy", component="calendar-api"}`. Logs are kept for 15 days in the `loki-data` volume; check its size with:
+
+```bash
+docker system df -v | grep homebuddy_loki-data
+```
+
 On a production host, the same file also runs the shared Traefik, the only container that binds ports 80 and 443, and publishes Grafana on `MONITORING_DOMAIN` over HTTPS (create a DNS record for it first). Set `GRAFANA_ADMIN_PASSWORD`, `MONITORING_DOMAIN`, `GRAFANA_COOKIE_SECURE=true`, and `TRAEFIK_ACME_EMAIL` in `.env`. Start it without the local override, which would publish Grafana and Prometheus on host ports:
 
 ```bash
