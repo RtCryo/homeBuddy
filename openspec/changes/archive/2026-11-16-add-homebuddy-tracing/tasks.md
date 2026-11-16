@@ -39,4 +39,4 @@
 
 ## 7. Archive
 
-- [ ] 7.1 Archive the per-service changes in their repositories. Then run `openspec validate add-homebuddy-tracing --strict` and archive this change after `add-homebuddy-monitoring` and `add-homebuddy-logging` have been archived, so that `homebuddy-monitoring` and `homebuddy-logging` exist in `openspec/specs/` when this change is synced.
+- [x] 7.1 Archive the per-service changes in their repositories. Then run `openspec validate add-homebuddy-tracing --strict` and archive this change after `add-homebuddy-monitoring` and `add-homebuddy-logging` have been archived, so that `homebuddy-monitoring` and `homebuddy-logging` exist in `openspec/specs/` when this change is synced.
